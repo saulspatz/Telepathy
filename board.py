@@ -71,7 +71,7 @@ colors = {}
 shapes = {}
 names = {}
 
-colors['A'] ='LightBlue2'
+colors['A'] = 'LightBlue2'
 colors['P'] = 'pink'
 colors['G'] = 'lightgreen'
 colors['B'] = 'brown3'
@@ -81,7 +81,7 @@ colors['R'] = 'red'
 colors['O'] = 'orange'
 colors['S'] = 'silver'
 
-names['A'] ='blue'
+names['A'] = 'blue'
 names['P'] = 'pink'
 names['G'] = 'green'
 names['B'] = 'brown'
@@ -104,6 +104,8 @@ shapes['M'] = 'moon'
 tiles = set()
 for row in range(18):
     for column in range(18):
-        tiles.add(Tile(row, column, colors[colorArray[row][column]], 
+        color = colorArray[row][column]
+        tiles.add(Tile(row, column, 
+                       colors[color], 
                        shapes[shapeArray[row][column]], 
-                       names[colorArray[row][column]]))
+                       names[color]))
