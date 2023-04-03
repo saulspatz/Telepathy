@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import font
+from tkinter import messagebox
 from board import tiles
 
 SIZE = 40  # side of tile in pixels
@@ -37,7 +38,7 @@ class Telepathy(tk.Tk):
     def makeTiles(self):
         self.canvas = tk.Canvas(self, height=20*SIZE, width=20*SIZE)
         canvas = self.canvas
-        alphabet = 'ABCDEFGHIJKLMNOPQR'
+        alphabet = self.alphabet = 'ABCDEFGHIJKLMNOPQR'
         for row in range(18):
             canvas.create_rectangle(
                 (0, (row+1)*SIZE), (SIZE, (row+2)*SIZE), fill='bisque')
@@ -68,12 +69,12 @@ class Telepathy(tk.Tk):
                 ((column+2)*SIZE, ((row+2)*SIZE)),
                 fill=color,)
 
-            def callback(event, color=color, shape=shape, row=row, column=column, colorName=colorName):
-                return self.onClickTile(event, color, shape, row, column, colorName)
+            def callback(event, shape=shape, row=row, column=column, colorName=colorName):
+                return self.onClickTile(event, shape, row, column, colorName)
 
             t = canvas.create_text((column+3/2)*SIZE, (row+3/2)*SIZE, anchor=tk.CENTER,
-                                   tags=('text', color, shape,
-                                         f'row{row}', f'column{column}'),
+                                   tags=('text', colorName, shape,
+                                         f'row{alphabet[row]}', f'column{column+1}'),
                                    text=shape,
                                    font=self.tileFont)
 
@@ -108,23 +109,38 @@ class Telepathy(tk.Tk):
         scrollY.grid(row=0, column=2, rowspan=2, sticky=tk.N+tk.S)
         self.record['yscrollcommand'] = scrollY.set
 
-    def onClickTile(self, event, color, shape, row, column, colorName):
+    def onClickTile(self, event, shape, row, column, colorName):
         canvas = self.canvas
-
-        for text in canvas.find_withtag('text'):
-            tags = set(canvas.gettags(text))
-            if {color, shape, f'row{row}', f'column{column}'} & tags:
-                canvas.itemconfigure(text, font=self.excludeTileFont)
-
-        for label in canvas.find_withtag(f'index{column}'):
-            canvas.itemconfigure(label, font=self.excludeIndexFont)
-
         base = ord('A')
-        for label in canvas.find_withtag(f'index{chr(base+row)}'):
-            canvas.itemconfigure(label, font=self.excludeIndexFont)
+        rowIndex = chr(base+row)
+        name =colorName.lower()
 
-        for idx in colorName.lower(), shape:
-            self.labels[idx].configure(font=self.excludePanelFont)
+        result = messagebox.askyesnocancel(message = f'{rowIndex}{column} {name} {shape}')
+        if result == None:   # Cancel
+            return
+        if result == False:  # No
+            for text in canvas.find_withtag('text'):
+                tags = set(canvas.gettags(text))
+                if intersect := {colorName, shape, f'row{rowIndex}', f'column{column+1}'} & tags:
+                    canvas.itemconfigure(text, font=self.excludeTileFont)
+                    for tag in intersect:
+                        canvas.dtag(text, tag)
+                    print(canvas.gettags(text))
+
+            for label in canvas.find_withtag(f'index{column}'):
+                canvas.itemconfigure(label, font=self.excludeIndexFont)
+
+            for label in canvas.find_withtag(f'index{rowIndex}'):
+                canvas.itemconfigure(label, font=self.excludeIndexFont)
+
+            for idx in name, shape:
+                self.labels[idx].configure(font=self.excludePanelFont)
+        else:  #Yes
+            for text in canvas.find_withtag('text'):
+                tags = set(canvas.gettags(text))
+                if {colorName, shape, f'row{rowIndex}', f'column{column+1}'} & tags == set():
+                    canvas.itemconfigure(text, font=self.excludeTileFont)
+
 
 root = Telepathy()
 
