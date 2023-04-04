@@ -7,12 +7,19 @@ SIZE = 40  # side of tile in pixels
 colors = ('Blue', 'Pink', 'Green', 'Brown', 'Silver',
           'Purple', 'Red', 'Orange', 'Yellow')
 shapes = ('Bolt', 'Die', 'Gem', 'Hand', 'Moon', 'Eye', 'Star', 'Heart', 'Sun')
-
+colorTags = {c.lower() for c in colors}
+shapeTags = {s.lower() for s in shapes}
 
 class Telepathy(tk.Tk):
     def __init__(self, master=None):
         super().__init__()
         self.title('Telepathy')
+        '''
+        If new fonts are needed add them to the END of the list
+        Tk numbers the fonts in the order they are assigned, and we
+        need to know the internal name in order to know which tiles have
+        been excluded.
+        '''
         self.tileFont = font.Font(family='Helvetica', size=11, weight='normal')
         self.indexFont = font.Font(
             family='Helvetica', size=14, weight='normal')
@@ -67,7 +74,9 @@ class Telepathy(tk.Tk):
             c = canvas.create_rectangle(
                 ((column+1)*SIZE, (row+1)*SIZE),
                 ((column+2)*SIZE, ((row+2)*SIZE)),
-                fill=color,)
+                fill=color,
+                tags=('tile', colorName, shape,
+                      f'row{alphabet[row]}', f'column{column+1}'))
 
             def callback(event, shape=shape, row=row, column=column, colorName=colorName):
                 return self.onClickTile(event, shape, row, column, colorName)
@@ -101,8 +110,8 @@ class Telepathy(tk.Tk):
         panel.grid(row=0, column=0, sticky=tk.E+tk.W)
 
     def makeRecord(self):
-        self.record = tk.Text(
-            self, bg='bisque', height=40, width=40, undo=True)
+        self.record = tk.Text(self, bg='bisque', height=40, width=40, 
+                              undo=True, font = self.recordFont)
         self.record.grid(row=0, column=1, rowspan=2, sticky=tk.N+tk.S)
         scrollY = tk.Scrollbar(self, orient=tk.VERTICAL,
                                command=self.record.yview)
@@ -115,7 +124,7 @@ class Telepathy(tk.Tk):
         rowIndex = chr(base+row)
         name =colorName.lower()
 
-        result = messagebox.askyesnocancel(message = f'{rowIndex}{column} {name} {shape}')
+        result = messagebox.askyesnocancel(message = f'{rowIndex}{column+1} {name} {shape}')
         if result == None:   # Cancel
             return
         if result == False:  # No
@@ -136,13 +145,33 @@ class Telepathy(tk.Tk):
             for idx in name, shape:
                 self.labels[idx].configure(font=self.excludePanelFont)
         else:  #Yes
+            currentTags = [tag for tag in canvas.find_withtag('current') 
+                    if tag not in ('current', 'text', 'tile')]
+            found = len(currentTags) == 1 
+            if found:
+                foundTag = currentTags[0]
+                if foundTag.startswith('row'):
+                    tagType = 'row'
+                elif foundTag.startswith('column'):
+                    tagType = 'column'
+                elif foundTag in colorTags:
+                    tagType = 'color'
+                elif foundTag in shapeTags:
+                    tagType = 'shape'
+                else:
+                    raise Exception(f'unkown tag type {foundTag}')
             for text in canvas.find_withtag('text'):
                 tags = set(canvas.gettags(text))
                 if {colorName, shape, f'row{rowIndex}', f'column{column+1}'} & tags == set():
                     canvas.itemconfigure(text, font=self.excludeTileFont)
-
-
+                if found and foundTag not in tags:
+                    canvas.itemconfigure(text, font=self.excludeTileFont)
+        excluded = 0
+        for text in canvas.find_withtag('text'):
+            print(canvas.itemcget(text, 'font'))
+            if canvas.itemcget(text, 'font') == 'font5':
+                excluded += 1
+        self.record.insert(tk.END, f"{rowIndex}{column+1} {name} {shape} {'Warm' if result else 'No'} {excluded}\n")
+    
 root = Telepathy()
-
-
 root.mainloop()
